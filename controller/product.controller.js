@@ -45,51 +45,93 @@ const createProduct = async (req, res) => {
 
 // Get all products
 const getProducts = async (req, res) => {
-  const userId = req.userId; // Assuming userId is passed through authentication middleware
-  const { status, type, name } = req.query; // Get query parameters for status, type, and name
+  const userId = req.userId;
+  let { name, sort } = req.query;
+
+  if (sort) {
+    sort = sort.replace(/['"]+/g, '');
+  }
 
   try {
-  
+    const currentUser = await User.findByPk(userId, {
+      attributes: ['latitude', 'longitude']
+    });
+
     let whereConditions = {};
+    let attributes = [
+      'id', 'name', 'description', 'price', 'type', 'image',
+      [
+        Sequelize.literal(`(
+          SELECT COUNT(*)
+          FROM "Orders"
+          WHERE "Orders"."product_id" = "Product"."id"
+        )`),
+        'orderCount'
+      ]
+    ];
 
-    // If "type" query parameter is provided, add it to the where conditions
-    if (type) {
-      whereConditions.type = type;
-    }
-
-    // If "name" query parameter is provided, add it to the where conditions (case-insensitive search)
     if (name) {
+      const cleanName = name.replace(/['"]+/g, '');
       whereConditions.name = {
-        [Sequelize.Op.iLike]: `%${name}%`,  // Case-insensitive search
+        [Sequelize.Op.iLike]: `%${cleanName}%`
       };
     }
 
-    let products = null;
+    if (sort === 'nearest' && currentUser.latitude && currentUser.longitude) {
+      attributes.push([
+        Sequelize.literal(`
+          CASE WHEN "user"."latitude" IS NOT NULL AND "user"."longitude" IS NOT NULL
+          THEN (
+            6371 * acos(
+              cos(radians(${currentUser.latitude})) * cos(radians("user"."latitude")) *
+              cos(radians("user"."longitude") - radians(${currentUser.longitude})) +
+              sin(radians(${currentUser.latitude})) * sin(radians("user"."latitude"))
+            )
+          )
+          ELSE NULL END
+        `),
+        'distance'
+      ]);
+    }
 
-      // For any other status (or no status query), fetch all active products
-      products = await Product.findAll({
-        attributes: ['id', 'name', 'description', 'price', 'type', 'image'],
-        where: whereConditions,  // Apply the conditions to filter products
-        include: [
-          {
-            model: User,
-            as: 'user',
-            attributes: ['id', 'username'],
-          },
+    let products = await Product.findAll({
+      attributes,
+      where: whereConditions,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'latitude', 'longitude']
+        }
       ]
-      });
- 
+    });
 
-    // Send response with filtered products
+    if (sort) {
+      switch(sort) {
+        case 'price_asc':
+          products = products.sort((a, b) => a.price - b.price);
+          break;
+        case 'most_ordered':
+          products = products.sort((a, b) => b.dataValues.orderCount - a.dataValues.orderCount);
+          break;
+        case 'nearest':
+          if (currentUser.latitude && currentUser.longitude) {
+            products = products.sort((a, b) => a.dataValues.distance - b.dataValues.distance);
+          }
+          break;
+      }
+    }
+
     res.status(200).json({
       message: 'Products retrieved successfully',
-      data: { products: products.length > 0 ? products : null },
+      data: { products: products.length > 0 ? products : null }
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'An error occurred while fetching the products' });
   }
 };
+
 
 
 // Get a product by ID

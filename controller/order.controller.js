@@ -155,60 +155,47 @@ const getOrderById = async (req, res) => {
 
 // Update an order by ID
 const updateOrder = async (req, res) => {
-    const orderId = req.params.id;
-    const {
-      product_id,
-      amount,
-      rate,
-      status,
-      return_date,
-      loan_date,
-    } = req.body;
-  
-    const updatedBy = req.userId;  // Ambil user ID dari JWT token (set oleh middleware)
-  
-    try {
-      // Cari order berdasarkan ID
-      const order = await Order.findOne({ where: { id: orderId } });
-  
-      if (!order) {
-        return res.status(404).json({ message: `Order with ID ${orderId} not found` });
-      }
-  
-      // Fetch user untuk mengasosiasikan dengan field updated_by
-      const user = await User.findByPk(updatedBy);
-      if (!user) {
-        return res.status(404).json({ message: `User with ID ${updatedBy} not found` });
-      }
-  
-      // Fetch product untuk mengasosiasikan dengan field product_id
-      if (product_id) {
-        const product = await Product.findByPk(product_id);
-        if (!product) {
-          return res.status(404).json({ message: `Product with ID ${product_id} not found` });
-        }
-      }
-  
-      // Update atribut order
-      order.product_id = product_id !== undefined ? product_id : order.product_id;
-      order.amount = amount !== undefined ? amount : order.amount;
-      order.rate = rate !== undefined ? rate : order.rate;
-      order.status = status !== undefined ? status : order.status;
-      order.return_date = return_date !== undefined ? return_date : order.return_date;
-      order.loan_date = loan_date !== undefined ? loan_date : order.loan_date;
-  
-      // Simpan perubahan ke database
-      await order.save();
-  
-      res.status(200).json({
-        message: 'Order updated successfully',
-        data: order,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred while updating the order' });
+  const orderId = req.params.id;
+  const { product_id, amount, rate, status, return_date, loan_date } = req.body;
+  const updatedBy = req.userId;
+
+  try {
+    const order = await Order.findOne({ where: { id: orderId } });
+
+    if (!order) {
+      return res.status(404).json({ message: `Order with ID ${orderId} not found` });
     }
-  };
+
+    // Create an update object with only provided fields
+    const updates = {};
+    
+    if (product_id !== undefined) {
+      const product = await Product.findByPk(product_id);
+      if (!product) {
+        return res.status(404).json({ message: `Product with ID ${product_id} not found` });
+      }
+      updates.product_id = product_id;
+    }
+    if (amount !== undefined) updates.amount = amount;
+    if (rate !== undefined) updates.rate = rate;
+    if (status !== undefined) updates.status = status;
+    if (return_date !== undefined) updates.return_date = return_date;
+    if (loan_date !== undefined) updates.loan_date = loan_date;
+
+    // Update only the provided fields
+    await order.update(updates);
+
+    res.status(200).json({
+      message: 'Order updated successfully',
+      data: order
+    });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while updating the order' });
+  }
+};
+
   
 
 module.exports = {

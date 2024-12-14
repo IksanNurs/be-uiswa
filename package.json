@@ -1,0 +1,37 @@
+{
+  "name": "be",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nodemon ./bin/www"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "~1.4.4",
+    "cookieparser": "^0.1.0",
+    "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
+    "debug": "~2.6.9",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-validator": "^7.2.0",
+    "http-errors": "~1.6.3",
+    "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.1",
+    "morgan": "~1.9.1",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.9.7",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "preline": "^2.1.0",
+    "sequelize": "^6.37.3",
+    "uuid": "^11.0.2",
+    "veritrans": "^0.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7",
+    "sequelize-cli": "^6.6.2"
+  }
+}

@@ -61,10 +61,11 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     const userId = req.userId;
+    const { status } = req.query;
 
     // Basic attributes to retrieve from the orders table
     const orderAttributes = [
-      'user_id', 'product_id', 'amount', 'status', 'rate', 'return_date', 'loan_date', 'quantity'
+      'id','user_id', 'product_id', 'amount', 'status', 'rate', 'return_date', 'loan_date', 'quantity'
     ];
 
     // Start the query
@@ -87,23 +88,26 @@ const getOrders = async (req, res) => {
       ],
     };
 
- 
+    // Add status condition if status query parameter exists
+    if (status) {
+      queryOptions.where.status = status.replace(/['"]+/g, '');
+    }
 
-  // Fetch orders based on the query options
-  const orders = await Order.findAndCountAll(queryOptions);
+    // Fetch orders based on the query options
+    const orders = await Order.findAndCountAll(queryOptions);
 
-
-  // Return the response
-  res.status(200).json({
-    message: 'Orders retrieved successfully',
-    data: orders.rows,
-  });
+    // Return the response
+    res.status(200).json({
+      message: 'Orders retrieved successfully',
+      data: orders.rows,
+    });
 
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'An error occurred while fetching the orders' });
   }
 };
+
   
 
 // Get an order by ID
